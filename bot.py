@@ -144,7 +144,7 @@ async def admin_open_dashboard(message: types.Message):
     # We use WebAppInfo to open the Mini App.
     kb = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [types.InlineKeyboardButton(text="Dashboardni ko'rish", web_app=types.WebAppInfo(url="https://grottolike-isogonally-marjory.ngrok-free.dev"))]
+            [types.InlineKeyboardButton(text="Dashboardni ko'rish", web_app=types.WebAppInfo(url="https://vercel.app"))]
         ]
     )
     await message.answer("Admin Dashboardni ochish uchun quyidagi tugmani bosing:", reply_markup=kb)
