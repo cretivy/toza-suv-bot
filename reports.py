@@ -22,7 +22,8 @@ def generate_excel_report():
     
     # Reorder and rename columns
     columns = {
-        'timestamp': 'Vaqt',
+        'timestamp': 'Buyurtma berilgan vaqt',
+        'delivered_at': 'Yetkazib berilgan vaqt',
         'customer_id': 'Mijoz ID',
         'quantity': 'Hajmi (soni)',
         'phone': 'Telefon',
@@ -31,6 +32,11 @@ def generate_excel_report():
         'lat': 'Latitude',
         'lon': 'Longitude'
     }
+    
+    # Fill missing delivered_at with "-"
+    if 'delivered_at' not in df.columns:
+        df['delivered_at'] = None
+    df['delivered_at'] = df['delivered_at'].fillna("—")
     
     df_final = df[list(columns.keys())].rename(columns=columns)
     

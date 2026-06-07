@@ -10,18 +10,60 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const App = () => {
   const [user, setUser] = useState(null);
+  const [filterType, setFilterType] = useState('daily'); // 'daily' or 'monthly'
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   
+  const API_URL = "https://shiny-lemons-fall.loca.lt/api/stats"; // Using localtunnel for the API
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setOrders(data.orders || []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     expandWebApp();
     setUser(getTelegramUser());
+    fetchData();
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const [data, setData] = useState({
+  const calculateStats = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const currentMonth = today.substring(0, 7);
+
+    const filtered = orders.filter(order => {
+      if (!order.delivered_at) return false;
+      if (filterType === 'daily') return order.delivered_at.startsWith(today);
+      if (filterType === 'monthly') return order.delivered_at.startsWith(currentMonth);
+      return true;
+    });
+
+    const totalOrders = filtered.length;
+    const totalVolume = filtered.reduce((acc, curr) => acc + parseInt(curr.quantity || 0), 0);
+    const revenue = (totalVolume * 20000).toLocaleString(); 
+
+    return { totalOrders, totalVolume, revenue };
+  };
+
+  const stats = calculateStats();
+
+  const data = {
     stats: {
-      totalOrders: 124,
-      revenue: "2,480,000",
+      totalOrders: stats.totalOrders,
+      revenue: stats.revenue,
       activeDrivers: 3,
-      totalCustomers: 45
+      totalVolume: stats.totalVolume
     },
     ordersTrend: [
       { name: 'Mon', count: 12 },
@@ -42,16 +84,35 @@ const App = () => {
       { name: 'Click', value: 35 },
       { name: 'Payme', value: 24 },
     ]
-  });
+  };
 
   return (
     <div className="dashboard-container">
       <header>
-        <h1 className="gradient-text">
-          Toza Suv Admin
-        </h1>
-        {user && <p className="subtitle">Xush kelibsiz, {user.first_name}!</p>}
-        <p className="subtitle">Real-time Dashboard</p>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <div>
+            <h1 className="gradient-text">Toza Suv Admin</h1>
+            {user && <p className="subtitle">Xush kelibsiz, {user.first_name}!</p>}
+          </div>
+          <div className="filter-buttons" style={{display: 'flex', gap: '8px', background: '#1e293b', padding: '4px', borderRadius: '12px'}}>
+            <button 
+              onClick={() => setFilterType('daily')}
+              style={{
+                padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                background: filterType === 'daily' ? '#3b82f6' : 'transparent',
+                color: filterType === 'daily' ? 'white' : '#94a3b8'
+              }}
+            >Kunlik</button>
+            <button 
+              onClick={() => setFilterType('monthly')}
+              style={{
+                padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                background: filterType === 'monthly' ? '#3b82f6' : 'transparent',
+                color: filterType === 'monthly' ? 'white' : '#94a3b8'
+              }}
+            >Oylik</button>
+          </div>
+        </div>
       </header>
 
       {/* Stats Grid */}
@@ -59,7 +120,7 @@ const App = () => {
         <StatCard icon={<ShoppingCart size={20}/>} label="Buyurtmalar" value={data.stats.totalOrders} color="blue" />
         <StatCard icon={<DollarSign size={20}/>} label="Tushum (so'm)" value={data.stats.revenue} color="green" />
         <StatCard icon={<Truck size={20}/>} label="Haydovchilar" value={data.stats.activeDrivers} color="yellow" />
-        <StatCard icon={<Users size={20}/>} label="Mijozlar" value={data.stats.totalCustomers} color="purple" />
+        <StatCard icon={<Activity size={20}/>} label="Hajmi (idish)" value={data.stats.totalVolume} color="purple" />
       </div>
 
       {/* Charts */}

@@ -6,10 +6,18 @@ from datetime import datetime
 STATE_FILE = "state.json"
 
 def load_state():
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
-    return {"active_driver_id": None, "customers": [], "orders": []}
+    if not os.path.exists(STATE_FILE):
+        return {"active_driver_id": None, "customers": [], "orders": []}
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            # Ensure required keys exist
+            if "orders" not in data: data["orders"] = []
+            if "customers" not in data: data["customers"] = []
+            if "active_driver_id" not in data: data["active_driver_id"] = None
+            return data
+    except (json.JSONDecodeError, ValueError):
+        return {"active_driver_id": None, "customers": [], "orders": []}
 
 def save_state(state):
     with open(STATE_FILE, "w") as f:
@@ -77,9 +85,14 @@ def update_order_status(order_id, status):
     for order in state.get("orders", []):
         if order.get("id") == order_id:
             order["status"] = status
+            if status == "Delivered":
+                order["delivered_at"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             save_state(state)
             return True
     return False
+
+def mark_order_delivered(order_id):
+    return update_order_status(order_id, "Delivered")
 
 def get_state():
     return load_state()
